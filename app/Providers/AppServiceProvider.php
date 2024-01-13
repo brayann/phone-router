@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Vendors\Carriers\CarrierInterface;
+use App\Vendors\Carriers\Twilio\TwilioClient;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(CarrierInterface::class, TwilioClient::class);
     }
 
     /**
@@ -19,6 +22,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        URL::forceScheme('https');
     }
 }

@@ -1,66 +1,62 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+## Intro
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+First of all, thank you for the opportunity, I really enjoyed the process so far, including this test, and hopefully you like my solution as well :-)
 
-## About Laravel
+### Dependencies
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- All you need to have installed are: PHP, Composer, ngrok and php-sqlite3 extension for SQLite. Since it is just an assessment I decided to just use sqlite, but obviously it is not recommended to use it in production, my preference would be either Postgres or MySQL.
+- You will also need an agent number: If your Twilio account has option to buy more numbers, you can use the app to get a new one or configure an existing number. If you're creating a trial account, you'll have to add an external phone as a verified phone number and use it as the agent's phone.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Configuration
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Once you cloned this repository, open a terminal and run these commands from the app's root folder:
 
-## Learning Laravel
+- > composer install
+- > php artisan app:setup
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+The last command below will do a few things: 
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+- Create a .env based on .env.example
+- Setup the application key
+- Prompt you for some info: Twilio Account SID, Twilio Auth Token
+- Prompt you for your ngrok live link (you can start it by running `ngrok http 8000` on another terminal tab)
+- Create a Twiml App
+- Prompt for an existing phone number on the Twilio account that can be used and re-configured, or just an area code so it buys and configures a new one. This number will be used as the app's number, which will either make a call or send a text with the VM link to the agent's number (which the app will also prompt you to pass).
+- Lastly it asks for the agent's number, as explained on the dependencies section.
+  
+That's it, the app is ready to use, you can now start it by running `php artisan serve`. If you typed anything wrong just run the command again but with the `--force` option and it will start over.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Usage
 
-## Laravel Sponsors
+Now just call the app's number and you'll get the prompts to play with. Press 1 so it calls your verified phone number, and 2 so it asks you to record a message and at the end it sends a text to your verified (agent's) number. Ideally you should call from a different number than the agent's number, otherwise if you press 1 you'll call yourself. For that, if you're using a trial account, you'll need to also add it as a verified number. (I know it sounds a bit confusing, sorry)
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Tests
 
-### Premium Partners
+> php artisan test
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+### About the Solution
 
-## Contributing
+After reading the project requirements, it seemed to me that there would be too much configurations on the app and also on Twilio's side. So in order to make a smooth setup process, I've created a command where you can setup (almost) everything from it, besides the verified callers that are needed (only for trial accounts).
+The implementation was very straight forward, I've created a model to save the call records per the specs, and on every status update it also updates on the db record.
+I like to keep the controller methods with the single responsibility of deciding how we will deliver the response (format, http code) and leave the processing/logic of that request inside of a service or actions. On this case there wasn't a need to implement, but when dealing with records I also like to use resources to have a standard/definition when retrieving a specific model for example. Same with: form requests, policies, etc, really enjoy using them but on this case they weren't used.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Design Decisions
 
-## Code of Conduct
+The app is expected only to work just with Twilio, but anything that will be interacting with outside resources, such as APIs, I prefer using interfaces and then bind the final implementation later. That allows you to add different implementations later by just creating another class that implementing that interface. For that I've used Laravel's service container.
+So the structure consists in: 
+    - Two routes (twilio.inbound and twilio.voicemail)
+    - A TwilioController that handles these routes and calls the TwilioService to process the requests.
+    - TwilioService which is responsible to decide what to return based on the webhook payloads from Twilio. It also uses the TwilioClient when it receives the callback from the voicemail, in order to send the SMS for the agent with the recording URL.
+    - CarrierInterface which defines all the methods that will interact with Twilio's API
+    - An implementation of that interface `TwilioClient` which has all the methods defined by the interface.
+    - Unit tests that simulates the payloads from Twilio's webhooks and for testing the SMS sending we are mocking an implementation of the `CarrierInterface`.
+    - A CallService that adds a layer on top of the Call model, so every interaction with the database also goes through a layer instead of using a direct implementation/access to the db itself, making it easier also for testing and future modifications.
+Here is a diagram for a better understanding of the structure and what access what:
+![Database ER Missing :(](/uml.png)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Further Considerations
 
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+On a bigger project I would add a few more layers to it, such as Repositories or even DTOs, but for the scope of this project I believe this is already well organized. Also would be a good idea to have a table/model for saving call recordings.
+I would also save the recordings on a private S3 instead of keeping them on Twilio's storage, so it saves $ and you have better control of it, more security (can make them private for example), and could use them with Cloudfront to have faster access.
+There was not much to be done once the call ends, but I've added an ending message and also I am grabbing the callback and saving the call status into the database.
+I would also add a Twilio Signature verification for further security.

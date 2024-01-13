@@ -35,6 +35,8 @@ return [
         'sid' => env('TWILIO_ACCOUNT_SID'),
         'token' => env('TWILIO_TOKEN'),
         'app_sid' => env('TWILIO_APP_SID'),
-    ]
+        'number' => env('TWILIO_NUMBER'),
+        'agent_number' => env('TWILIO_AGENT_NUMBER'),
+    ],
 
 ];
